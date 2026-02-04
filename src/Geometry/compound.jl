@@ -1,79 +1,53 @@
-# === Static Geometry Types ===
-# Geometries where sites are known at construction time
+# === Compound Geometry Helpers ===
 
 """
-    SingleSite(site::Int)
+    is_compound_geometry(geo::AbstractGeometry) -> Bool
 
-Geometry specifying a single physical site.
-Used for single-qubit gates like PauliX, Projection.
+Check if geometry requires element-by-element iteration.
+
+Compound geometries (Bricklayer, AllSites) need to be expanded into
+multiple individual gate applications, one for each element/site pair.
 """
-struct SingleSite <: AbstractGeometry
-    site::Int
-end
-
-get_sites(geo::SingleSite, state) = [geo.site]
-
-"""
-    AdjacentPair(first::Int)
-
-Geometry specifying an adjacent pair of physical sites: (first, first+1).
-For PBC, wraps: (L, 1) when first=L.
-"""
-struct AdjacentPair <: AbstractGeometry
-    first::Int
-end
-
-function get_sites(geo::AdjacentPair, state)
-    L = state.L
-    second = (geo.first == L && state.bc == :periodic) ? 1 : geo.first + 1
-    return [geo.first, second]
-end
+is_compound_geometry(::Bricklayer) = true
+is_compound_geometry(::AllSites) = true
+is_compound_geometry(::AbstractGeometry) = false
 
 """
-    Bricklayer(parity::Symbol)
+    get_compound_elements(geo::AbstractGeometry, L::Int, bc::Symbol) -> Vector{Vector{Int}}
 
-Geometry for bricklayer gate application pattern.
+Get elements for compound geometry iteration.
 
-Nearest-neighbor (NN) modes:
-- `:odd` parity → pairs (1,2), (3,4), (5,6), ...
-- `:even` parity → pairs (2,3), (4,5), ... plus (L,1) for PBC
-- `:nn` parity → ALL NN pairs (combines :odd + :even)
+Returns a vector of site vectors, where each inner vector represents the sites
+for one gate application.
 
-Next-nearest-neighbor (NNN) modes (4 sublayers covering all 12 NNN pairs for L=12):
-- `:nnn_odd_1` parity → pairs (1,3), (5,7), (9,11), ... (stride 4, offset 1)
-- `:nnn_odd_2` parity → pairs (3,5), (7,9), (11,1), ... (stride 4, offset 3, PBC wrap)
-- `:nnn_even_1` parity → pairs (2,4), (6,8), (10,12), ... (stride 4, offset 2)
-- `:nnn_even_2` parity → pairs (4,6), (8,10), (12,2), ... (stride 4, offset 4, PBC wrap)
-- `:nnn` parity → ALL NNN pairs (combines all 4 sublayers)
+# Arguments
+- `geo`: The geometry object (Bricklayer or AllSites)
+- `L`: System size (number of sites)
+- `bc`: Boundary condition (:open or :periodic)
 
-apply! loops internally over all pairs.
+# Returns
+- `Vector{Vector{Int}}`: Each inner vector is the sites for one gate application
+
+# Examples
+```julia
+# Bricklayer with odd parity on L=4 system
+geo = Bricklayer(:odd)
+get_compound_elements(geo, 4, :open)  # [[1, 2], [3, 4]]
+
+# AllSites on L=3 system
+geo = AllSites()
+get_compound_elements(geo, 3, :open)  # [[1], [2], [3]]
+```
 """
-struct Bricklayer <: AbstractGeometry
-    parity::Symbol
-    
-    function Bricklayer(parity::Symbol)
-        parity in (:odd, :even, :nn, :nnn, :nnn_odd_1, :nnn_odd_2, :nnn_even_1, :nnn_even_2) || throw(ArgumentError("Bricklayer parity must be :odd, :even, :nn, :nnn, :nnn_odd_1, :nnn_odd_2, :nnn_even_1, or :nnn_even_2, got $parity"))
-        new(parity)
-    end
-end
-
-"""
-    get_pairs(geo::Bricklayer, state) -> Vector{Tuple{Int,Int}}
-
-Get all pairs for bricklayer pattern. Returns pairs of physical sites.
-"""
-function get_pairs(geo::Bricklayer, state)
-    L = state.L
-    bc = state.bc
+function get_compound_elements(geo::Bricklayer, L::Int, bc::Symbol)
     pairs = Tuple{Int,Int}[]
-    
     if geo.parity == :odd
-        # Odd pairs: (1,2), (3,4), (5,6), ...
+        # NN odd pairs: (1,2), (3,4), (5,6), ...
         for i in 1:2:L-1
             push!(pairs, (i, i+1))
         end
     elseif geo.parity == :even
-        # Even pairs: (2,3), (4,5), ...
+        # NN even pairs: (2,3), (4,5), ...
         for i in 2:2:L-1
             push!(pairs, (i, i+1))
         end
@@ -145,21 +119,9 @@ function get_pairs(geo::Bricklayer, state)
             push!(pairs, (L, 2))  # Wrap: (12,2) for L=12
         end
     end
-    
-    return pairs
+    return [[p1, p2] for (p1, p2) in pairs]
 end
 
-"""
-    AllSites
-
-Geometry for applying single-site gates to all sites.
-apply! loops internally over all L sites.
-"""
-struct AllSites <: AbstractGeometry end
-
-"""
-    get_all_sites(geo::AllSites, state) -> Vector{Int}
-
-Get all physical sites (1:L).
-"""
-get_all_sites(geo::AllSites, state) = collect(1:state.L)
+function get_compound_elements(geo::AllSites, L::Int, bc::Symbol)
+    return [[site] for site in 1:L]
+end

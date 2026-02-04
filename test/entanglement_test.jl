@@ -8,9 +8,9 @@ using QuantumCircuitsMPS
     @testset "Product state entropy" begin
         # Product state |0⟩⊗L should have zero entanglement entropy
         state = SimulationState(L=4, bc=:open)
-        initialize!(state, ProductState(x0=0//1))  # All qubits in |0⟩
+        initialize!(state, ProductState(binary_int=0))  # All qubits in |0⟩
         
-        ee = EntanglementEntropy(cut=2, order=1)
+        ee = EntanglementEntropy(cut=2, renyi_index=1)
         entropy = ee(state)
         
         @test entropy ≈ 0.0 atol=1e-10
@@ -25,10 +25,10 @@ using QuantumCircuitsMPS
     @testset "Track/record integration" begin
         # Test that track!/record! workflow works correctly
         state = SimulationState(L=4, bc=:open; rng=RNGRegistry(ctrl=1, proj=2, haar=3, born=4))
-        initialize!(state, ProductState(x0=0//1))
+        initialize!(state, ProductState(binary_int=0))
         
         # Track entanglement entropy at cut=2
-        track!(state, :ee => EntanglementEntropy(cut=2, order=1))
+        track!(state, :ee => EntanglementEntropy(cut=2, renyi_index=1))
         
         # Record initial entropy
         record!(state)
@@ -48,21 +48,21 @@ using QuantumCircuitsMPS
     @testset "Cut validation" begin
         # Test that cut validation works correctly
         state = SimulationState(L=4, bc=:open)
-        initialize!(state, ProductState(x0=0//1))
+        initialize!(state, ProductState(binary_int=0))
         
         # cut=1 should work (minimum valid cut)
-        ee1 = EntanglementEntropy(cut=1, order=1)
+        ee1 = EntanglementEntropy(cut=1, renyi_index=1)
         @test ee1(state) isa Float64
         
         # cut=L-1 should work (maximum valid cut)
-        ee_max = EntanglementEntropy(cut=3, order=1)
+        ee_max = EntanglementEntropy(cut=3, renyi_index=1)
         @test ee_max(state) isa Float64
         
         # cut=0 should fail at construction
-        @test_throws ArgumentError EntanglementEntropy(cut=0, order=1)
+        @test_throws ArgumentError EntanglementEntropy(cut=0, renyi_index=1)
         
         # cut=L should fail at call time
-        ee_invalid = EntanglementEntropy(cut=4, order=1)
+        ee_invalid = EntanglementEntropy(cut=4, renyi_index=1)
         @test_throws ArgumentError ee_invalid(state)
     end
 end

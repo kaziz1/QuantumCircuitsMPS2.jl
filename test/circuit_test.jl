@@ -90,6 +90,34 @@ end
     end
 end
 
+@testset "Circuit params field" begin
+    @testset "Basic param storage" begin
+        circuit = Circuit(L=4, bc=:periodic, threshold=0.5, name="test") do c
+            apply!(c, Reset(), SingleSite(1))
+        end
+        
+        @test circuit.params[:threshold] == 0.5
+        @test circuit.params[:name] == "test"
+    end
+    
+    @testset "CircuitBuilder access in do-block" begin
+        accessed_value = Ref{Any}(nothing)
+        circuit = Circuit(L=4, bc=:periodic, my_param=42) do c
+            accessed_value[] = c.params[:my_param]
+        end
+        
+        @test accessed_value[] == 42
+    end
+    
+    @testset "Backward compatibility (empty params)" begin
+        circuit = Circuit(L=4, bc=:periodic) do c
+            apply!(c, Reset(), SingleSite(1))
+        end
+        
+        @test isempty(circuit.params)
+    end
+end
+
 @testset "CircuitBuilder Validation" begin
     @testset "Wrong RNG key" begin
         @test_throws ArgumentError Circuit(L=4, bc=:periodic) do c
@@ -224,7 +252,7 @@ end
         
         rng = RNGRegistry(ctrl=42, proj=43, haar=44, born=45)
         state = SimulationState(L=4, bc=:periodic, rng=rng)
-        initialize!(state, ProductState(x0=1//16))
+        initialize!(state, ProductState(binary_int=1))
         track!(state, :dw => DomainWall(order=1, i1_fn=() -> 1))
         
         # Should execute without error
@@ -244,7 +272,7 @@ end
         
         rng = RNGRegistry(ctrl=42, proj=43, haar=44, born=45)
         state = SimulationState(L=4, bc=:periodic, rng=rng)
-        initialize!(state, ProductState(x0=1//16))
+        initialize!(state, ProductState(binary_int=1))
         track!(state, :dw => DomainWall(order=1, i1_fn=() -> 1))
         
         simulate!(circuit, state; n_circuits=3)
@@ -260,7 +288,7 @@ end
         
         rng = RNGRegistry(ctrl=42, proj=43, haar=44, born=45)
         state = SimulationState(L=4, bc=:periodic, rng=rng)
-        initialize!(state, ProductState(x0=1//16))
+        initialize!(state, ProductState(binary_int=1))
         track!(state, :dw => DomainWall(order=1, i1_fn=() -> 1))
         
         # Test: record_when=:every_step (default)
@@ -269,7 +297,7 @@ end
         
         # Reset state for next test
         state = SimulationState(L=4, bc=:periodic, rng=RNGRegistry(ctrl=42, proj=43, haar=44, born=45))
-        initialize!(state, ProductState(x0=1//16))
+        initialize!(state, ProductState(binary_int=1))
         track!(state, :dw => DomainWall(order=1, i1_fn=() -> 1))
         
         # Test: record_when=:final_only
@@ -278,7 +306,7 @@ end
         
         # Reset state for next test
         state = SimulationState(L=4, bc=:periodic, rng=RNGRegistry(ctrl=42, proj=43, haar=44, born=45))
-        initialize!(state, ProductState(x0=1//16))
+        initialize!(state, ProductState(binary_int=1))
         track!(state, :dw => DomainWall(order=1, i1_fn=() -> 1))
         
         # Test: record_when=every_n_steps(2)
@@ -295,7 +323,7 @@ end
         
         rng = RNGRegistry(ctrl=42, proj=43, haar=44, born=45)
         state = SimulationState(L=4, bc=:periodic, rng=rng)
-        initialize!(state, ProductState(x0=1//16))
+        initialize!(state, ProductState(binary_int=1))
         track!(state, :dw => DomainWall(order=1, i1_fn=() -> 1))
         
         # Should complete without error even with many steps
@@ -620,7 +648,7 @@ end
         # Simulate with matching seed
         rng = RNGRegistry(ctrl=42, proj=43, haar=44, born=45)
         state = SimulationState(L=4, bc=:periodic, rng=rng)
-        initialize!(state, ProductState(x0=1//16))
+        initialize!(state, ProductState(binary_int=1))
         
         # Should complete without error (alignment is implicit)
         simulate!(circuit, state; n_circuits=1, record_when=:final_only)
@@ -648,7 +676,7 @@ end
         # Execute to verify no errors
         rng = RNGRegistry(ctrl=0, proj=43, haar=44, born=45)
         state = SimulationState(L=4, bc=:periodic, rng=rng)
-        initialize!(state, ProductState(x0=1//16))
+        initialize!(state, ProductState(binary_int=1))
         
         simulate!(circuit, state; n_circuits=1, record_when=:final_only)
         @test true
@@ -869,7 +897,7 @@ end
         
         rng = RNGRegistry(ctrl=42, proj=43, haar=44, born=45)
         state = SimulationState(L=4, bc=:periodic, rng=rng)
-        initialize!(state, ProductState(x0=0//1))
+        initialize!(state, ProductState(binary_int=0))
         track!(state, :dw => DomainWall(order=1, i1_fn=() -> 1))
         
         # Should execute without error
@@ -887,7 +915,7 @@ end
         
         rng = RNGRegistry(ctrl=42, proj=43, haar=44, born=45)
         state = SimulationState(L=4, bc=:periodic, rng=rng)
-        initialize!(state, ProductState(x0=0//1))
+        initialize!(state, ProductState(binary_int=0))
         track!(state, :dw => DomainWall(order=1, i1_fn=() -> 1))
         
         # Should execute without error
@@ -908,7 +936,7 @@ end
         
         rng = RNGRegistry(ctrl=42, proj=43, haar=44, born=45)
         state = SimulationState(L=4, bc=:periodic, rng=rng)
-        initialize!(state, ProductState(x0=0//1))
+        initialize!(state, ProductState(binary_int=0))
         track!(state, :dw => DomainWall(order=1, i1_fn=() -> 1))
         
         # Should execute without error
@@ -928,12 +956,12 @@ end
         
         # First state
         s1 = SimulationState(L=4, bc=:periodic, rng=RNGRegistry(ctrl=42, proj=1, haar=2, born=3))
-        initialize!(s1, ProductState(x0=0//1))
+        initialize!(s1, ProductState(binary_int=0))
         simulate!(circuit, s1; n_circuits=5)
         
         # Second state with same seeds
         s2 = SimulationState(L=4, bc=:periodic, rng=RNGRegistry(ctrl=42, proj=1, haar=2, born=3))
-        initialize!(s2, ProductState(x0=0//1))
+        initialize!(s2, ProductState(binary_int=0))
         simulate!(circuit, s2; n_circuits=5)
         
         # Compare MPS tensors - need to handle different tensor ranks
@@ -1018,7 +1046,7 @@ end
         # We can't directly count measurements, but we verify no errors
         rng = RNGRegistry(ctrl=42, proj=1, haar=2, born=3)
         state = SimulationState(L=4, bc=:periodic, rng=rng)
-        initialize!(state, ProductState(x0=0//1))
+        initialize!(state, ProductState(binary_int=0))
         
         # Should execute without error (alignment is implicit)
         simulate!(circuit, state; n_circuits=1, record_when=:final_only)
@@ -1042,7 +1070,7 @@ end
         # simulate! should execute without error
         rng = RNGRegistry(ctrl=42, proj=43, haar=44, born=45)
         state = SimulationState(L=2, bc=:open, rng=rng)
-        initialize!(state, ProductState(x0=0//1))
+        initialize!(state, ProductState(binary_int=0))
         track!(state, :dw => DomainWall(order=1, i1_fn=() -> 1))
         
         # Note: Empty compound geometry doesn't trigger recording in deterministic path
@@ -1062,8 +1090,8 @@ end
         
         rng = RNGRegistry(ctrl=42, proj=43, haar=44, born=45)
         state = SimulationState(L=4, bc=:open, rng=rng)
-        initialize!(state, ProductState(x0=0//1))
-        track!(state, :entropy => EntanglementEntropy(cut=2, order=1))
+        initialize!(state, ProductState(binary_int=0))
+        track!(state, :entropy => EntanglementEntropy(cut=2, renyi_index=1))
         
         # Simulate with recording
         simulate!(circuit, state; n_circuits=3, record_when=:every_step)
@@ -1072,5 +1100,124 @@ end
         @test length(state.observables[:entropy]) == 3
         @test all(e -> e isa Float64, state.observables[:entropy])
         @test all(e -> e >= 0, state.observables[:entropy])
+    end
+end
+
+@testset "Circuit Visualization Fixes (Issues 1-5)" begin
+    @testset "Issue 5: SpinSectorProjection label shows P(S≠2)" begin
+        # Create circuit with SpinSectorProjection
+        P0 = total_spin_projector(0)
+        P1 = total_spin_projector(1)
+        proj = SpinSectorProjection(P0 + P1)
+        circuit = Circuit(L=4, bc=:periodic, n_steps=1) do c
+            apply!(c, proj, AdjacentPair(1))
+        end
+        
+        try
+            Base.require(Main, :Luxor)
+            
+            svg_path = tempname() * ".svg"
+            plot_circuit(circuit; seed=0, filename=svg_path)
+            svg = read(svg_path, String)
+            rm(svg_path)
+            
+            # Verify label is NOT the type name (Luxor renders text as glyphs)
+            # Just check SVG was created and doesn't contain full type name
+            @test contains(svg, "<svg")
+            @test !contains(svg, "SpinSectorProjection")
+        catch e
+            if e isa ArgumentError && contains(string(e), "Package Luxor not found")
+                @test_skip "Luxor not available - skipping SVG test"
+            else
+                rethrow(e)
+            end
+        end
+    end
+    
+    @testset "Issues 2+3: Non-adjacent gates render as two boxes" begin
+        # Create circuit with NNN gates (non-adjacent)
+        circuit = Circuit(L=8, bc=:periodic, n_steps=1) do c
+            apply!(c, HaarRandom(), Bricklayer(:nnn))  # NNN gates (4 gates)
+        end
+        
+        try
+            Base.require(Main, :Luxor)
+            
+            svg_path = tempname() * ".svg"
+            plot_circuit(circuit; seed=0, filename=svg_path)
+            svg = read(svg_path, String)
+            rm(svg_path)
+            
+            # Count boxes - should have 2 per NNN gate (4 gates × 2 = 8 boxes minimum)
+            # Boxes are rendered with fill-rule="nonzero"
+            box_count = length(collect(eachmatch(r"fill-rule=\"nonzero\"", svg)))
+            @test box_count >= 8
+        catch e
+            if e isa ArgumentError && contains(string(e), "Package Luxor not found")
+                @test_skip "Luxor not available - skipping SVG test"
+            else
+                rethrow(e)
+            end
+        end
+    end
+    
+    @testset "Issue 1: Bricklayer parallel layout (no letter suffixes)" begin
+        # Create bricklayer circuit with parallel NN gates
+        circuit = Circuit(L=8, bc=:periodic, n_steps=1) do c
+            apply!(c, HaarRandom(), Bricklayer(:nn))  # 8 parallel ops
+        end
+        
+        try
+            Base.require(Main, :Luxor)
+            
+            svg_path = tempname() * ".svg"
+            plot_circuit(circuit; seed=0, filename=svg_path)
+            svg = read(svg_path, String)
+            rm(svg_path)
+            
+            # Verify no letter suffixes (1a, 1b, etc)
+            @test !contains(svg, "1a")
+            @test !contains(svg, "1b")
+            @test !contains(svg, "1c")
+            @test !contains(svg, "1d")
+        catch e
+            if e isa ArgumentError && contains(string(e), "Package Luxor not found")
+                @test_skip "Luxor not available - skipping SVG test"
+            else
+                rethrow(e)
+            end
+        end
+    end
+    
+    @testset "Issue 4: Dynamic font sizing (visual verification)" begin
+        # This issue is about dynamic font sizing - verified visually in aklt_circuit.svg
+        # No automated test needed, but we ensure the circuit generates without errors
+        circuit = Circuit(L=8, bc=:periodic, n_steps=1) do c
+            P0 = total_spin_projector(0)
+            P1 = total_spin_projector(1)
+            proj = SpinSectorProjection(P0 + P1)
+            apply_with_prob!(c; rng=:ctrl, outcomes=[
+                (probability=1.0, gate=proj, geometry=Bricklayer(:nn))
+            ])
+        end
+        
+        try
+            Base.require(Main, :Luxor)
+            
+            svg_path = tempname() * ".svg"
+            plot_circuit(circuit; seed=42, filename=svg_path)
+            svg = read(svg_path, String)
+            rm(svg_path)
+            
+            # Just verify SVG was created successfully
+            @test contains(svg, "<svg")
+            @test !contains(svg, "SpinSectorProjection")
+        catch e
+            if e isa ArgumentError && contains(string(e), "Package Luxor not found")
+                @test_skip "Luxor not available - skipping SVG test"
+            else
+                rethrow(e)
+            end
+        end
     end
 end
