@@ -12,6 +12,8 @@ include("domain_wall.jl")
 include("entanglement.jl")
 include("string_order.jl")
 include("bond_dimension.jl")
+include("SelfAveraging.jl")
+
 
 # === Observable Tracking API ===
 
