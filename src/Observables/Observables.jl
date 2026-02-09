@@ -74,5 +74,5 @@ obs_types = list_observables()
 ```
 """
 function list_observables()::Vector{String}
-    return ["DomainWall", "BornProbability", "EntanglementEntropy", "StringOrder"]
+    return ["DomainWall", "BornProbability", "EntanglementEntropy", "StringOrder", "BondDimension"]
 end
