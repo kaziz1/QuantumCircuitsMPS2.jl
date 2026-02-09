@@ -11,6 +11,7 @@ include("born.jl")
 include("domain_wall.jl")
 include("entanglement.jl")
 include("string_order.jl")
+include("bond_dimension.jl")
 
 # === Observable Tracking API ===
 
