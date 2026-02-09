@@ -1,4 +1,4 @@
-module QuantumCircuitsMPS
+module QuantumCircuitsMPS2
 
 using ITensors
 using ITensorMPS
