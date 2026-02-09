@@ -57,7 +57,9 @@ export StaircaseLeft, StaircaseRight
 export Pointer, move!
 # Observables
 export AbstractObservable, DomainWall, BornProbability, EntanglementEntropy, StringOrder
+export BondDimension, SpatiallyAveragedStringOrder 
 export track!, record!, list_observables
+export window_checker
 # API
 export apply!, simulate, with_state, current_state, apply_with_prob!
 export run_circuit!, simulate_circuits, CircuitSimulation
