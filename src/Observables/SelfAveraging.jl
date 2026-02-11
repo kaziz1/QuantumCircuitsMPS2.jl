@@ -62,7 +62,7 @@ end
 # ==============================================================================
 # 3. HELPER: MEASUREMENT WORKER
 # ==============================================================================
-function record_step!(idx, t, state, L, self_av_space_it, SO_NN_mat, SO_NNN_mat, S_mat)
+function record_step!(idx, t, state, L, self_av_space_it, SO_NN_mat, SO_NNN_mat, S_mat, bond_mat)
     # A. Measure Entropy (Scalar)
     S_val = EntanglementEntropy(cut=L÷2, renyi_index=1, base=2)(state)
     
@@ -70,7 +70,11 @@ function record_step!(idx, t, state, L, self_av_space_it, SO_NN_mat, SO_NNN_mat,
     S_mat[idx, 1] = t
     S_mat[idx, 2] = S_val
     
-    # B. Measure Spatial Shifts
+    # B. Measure Bond Dimension
+    # Store the max bond dimension of the MPS
+    bond_mat[idx, 1] = BondDimension()(state)
+    
+    # C. Measure Spatial Shifts
     # Set the first column to Time
     SO_NN_mat[idx, 1]  = t
     SO_NNN_mat[idx, 1] = t
