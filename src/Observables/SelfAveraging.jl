@@ -62,7 +62,7 @@ end
 # ==============================================================================
 # 3. HELPER: MEASUREMENT WORKER
 # ==============================================================================
-function QuantumCircuitsMPS2.record_step!(idx, t, state, L, self_av_space_it, SO_NN_mat, SO_NNN_mat, S_mat, bond_mat)
+function record_step!(idx, t, state, L, self_av_space_it, SO_NN_mat, SO_NNN_mat, S_mat, bond_mat)
     # A. Measure Entropy (Scalar)
     S_val = EntanglementEntropy(cut=L÷2, renyi_index=1, base=2)(state)
     
