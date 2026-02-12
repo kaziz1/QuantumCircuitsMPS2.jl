@@ -57,7 +57,7 @@ export StaircaseLeft, StaircaseRight
 export Pointer, move!
 # Observables
 export AbstractObservable, DomainWall, BornProbability, EntanglementEntropy, StringOrder
-export BondDimension, SpatiallyAveragedStringOrder 
+export BondDimension, SpatiallyAveragedStringOrder, DimerOrder
 export track!, record!, list_observables
 export window_checker, SpatiallyAveragedStringOrder, record_step!
 # API
