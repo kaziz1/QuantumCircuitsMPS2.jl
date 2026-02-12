@@ -13,6 +13,7 @@ include("entanglement.jl")
 include("string_order.jl")
 include("bond_dimension.jl")
 include("SelfAveraging.jl")
+include("dimer_order.jl") 
 
 
 # === Observable Tracking API ===
@@ -76,5 +77,5 @@ obs_types = list_observables()
 ```
 """
 function list_observables()::Vector{String}
-    return ["DomainWall", "BornProbability", "EntanglementEntropy", "StringOrder", "BondDimension"]
+    return ["DomainWall", "BornProbability", "EntanglementEntropy", "StringOrder", "BondDimension","Dimer"]
 end
