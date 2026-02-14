@@ -52,7 +52,7 @@ export AbstractGate, PauliX, PauliY, PauliZ, Projection, HaarRandom, Measurement
 export total_spin_projector, verify_spin_projectors
 export SpinSectorProjection, SpinSectorMeasurement
 # Geometry
-export AbstractGeometry, SingleSite, AdjacentPair, Bricklayer, AllSites
+export AbstractGeometry, SingleSite, AdjacentPair, NextNearestNeighbor, Bricklayer, AllSites
 export StaircaseLeft, StaircaseRight
 export Pointer, move!
 # Observables
