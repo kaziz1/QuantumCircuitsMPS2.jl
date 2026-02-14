@@ -30,6 +30,25 @@ function get_sites(geo::AdjacentPair, state)
 end
 
 """
+    NextNearestNeighbor(first::Int)
+
+Geometry specifying a next-nearest-neighbor pair of physical sites: (first, first+2).
+For PBC, wraps: (L-1, 1) and (L, 2).
+"""
+struct NextNearestNeighbor <: AbstractGeometry
+    first::Int
+end
+
+function get_sites(geo::NextNearestNeighbor, state)
+    L = state.L
+    # If periodic and we are at L-1 or L, we wrap.
+    # L-1 wraps to 1. L wraps to 2.
+    # Otherwise, we just add 2.
+    second = (state.bc == :periodic && geo.first >= L - 1) ? (geo.first + 2 - L) : geo.first + 2
+    return [geo.first, second]
+end
+
+"""
     Bricklayer(parity::Symbol)
 
 Geometry for bricklayer gate application pattern.
