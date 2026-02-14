@@ -196,6 +196,42 @@ function compute_sites(geo::AdjacentPair, step::Int, L::Int, bc::Symbol)
 end
 
 """
+    compute_sites(geo::NextNearestNeighbor, step::Int, L::Int, bc::Symbol) -> Vector{Int}
+
+Compute sites for NextNearestNeighbor geometry (i, i+2).
+
+# Arguments
+- `geo`: NextNearestNeighbor geometry
+- `step`: Step number (unused)
+- `L`: System size
+- `bc`: Boundary condition (`:periodic` or `:open`)
+
+# Returns
+- Two-element vector `[geo.first, second]` where second wraps:
+  - wraps to 1 if first == L-1
+  - wraps to 2 if first == L
+"""
+function compute_sites(geo::NextNearestNeighbor, step::Int, L::Int, bc::Symbol)
+    s1 = geo.first
+    
+    # Logic for Next-Nearest Neighbor (stride 2)
+    if bc == :periodic || bc == "periodic"
+        if s1 == L - 1
+            s2 = 1   # Wrap (L-1) + 2 -> L+1 -> 1
+        elseif s1 == L
+            s2 = 2   # Wrap L + 2     -> L+2 -> 2
+        else
+            s2 = s1 + 2
+        end
+    else
+        # Open boundary conditions (just add 2)
+        s2 = s1 + 2
+    end
+
+    return [s1, s2]
+end
+
+"""
     compute_sites(geo::StaircaseRight, step::Int, L::Int, bc::Symbol, gate::AbstractGate) -> Vector{Int}
 
 Compute sites for StaircaseRight geometry based on gate support.
