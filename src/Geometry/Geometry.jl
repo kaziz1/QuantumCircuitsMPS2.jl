@@ -2,7 +2,7 @@
 Geometry types for specifying where gates are applied.
 
 Provides abstractions for:
-- Static geometries: SingleSite, AdjacentPair, Bricklayer, AllSites
+- Static geometries: SingleSite, AdjacentPair, NextNearestNeighbor, Bricklayer, AllSites
 - Dynamic geometries: StaircaseLeft, StaircaseRight (with internal pointer)
 """
 
