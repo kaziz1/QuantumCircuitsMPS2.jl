@@ -80,15 +80,21 @@ function validate_geometry(geo::AbstractGeometry)
         # supported
     elseif geo isa AdjacentPair
         # supported
+    elseif geo isa NextNearestNeighbor
+        # supported (custom geometry: (i, i+2) with PBC wrap)
     elseif geo isa Bricklayer
         # supported
     elseif geo isa AllSites
         # supported
     else
-        throw(ArgumentError("Phase 1 does not support geometry type $(typeof(geo)). " *
-                            "Supported: StaircaseRight, StaircaseLeft, SingleSite, AdjacentPair, Bricklayer, AllSites"))
+        throw(ArgumentError(
+            "Phase 1 does not support geometry type $(typeof(geo)). " *
+            "Supported: StaircaseRight, StaircaseLeft, SingleSite, AdjacentPair, " *
+            "NextNearestNeighbor, Bricklayer, AllSites"
+        ))
     end
 end
+
 
 """
     select_branch(rng::AbstractRNG, outcomes) -> Union{NamedTuple, Nothing}
