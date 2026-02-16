@@ -53,7 +53,7 @@ Create a new simulation state. MPS is created later via initialize!().
 
 Parameters:
 - L: system size
-- bc: boundary condition (:open or :periodic)
+- bc: boundary condition (:open or :periodic or :periodic_nnn)
 - site_type: site index type ("Qubit", "S=1", "Qudit")
 - local_dim: local Hilbert space dimension (default 2)
 - cutoff: SVD truncation cutoff
@@ -72,7 +72,7 @@ function SimulationState(;
     rng = nothing  # RNGRegistry, attached later or passed here
 )
     # Validate bc
-    bc in (:open, :periodic) || throw(ArgumentError("bc must be :open or :periodic, got $bc"))
+    bc in (:open, :periodic, :periodic_nnn) || throw(ArgumentError("bc must be :open or :periodic or :periodic_nnn, got $bc"))
     
     # Auto-detect local_dim from site_type if not explicitly set
     if site_type == "S=1" && local_dim == 2  # default not overridden
