@@ -11,7 +11,7 @@ expands them to concrete gate applications only when passed to `simulate!`.
 
 # Fields
 - `L::Int`: Number of physical sites in the system
-- `bc::Symbol`: Boundary conditions (`:periodic` or `:open`)
+- `bc::Symbol`: Boundary conditions (`:periodic` or `:open` or ':periodic_nnn')
 - `operations::Vector{NamedTuple}`: Internal symbolic operation list
 - `n_steps::Int`: Number of circuit timesteps (default: 1)
 - `params::Dict{Symbol,Any}`: User-defined parameters (default: empty Dict)
