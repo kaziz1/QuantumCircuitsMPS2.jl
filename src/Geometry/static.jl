@@ -1,9 +1,6 @@
 # === Static Geometry Types ===
 # Geometries where sites are known at construction time
 
-# Treat :periodic and :periodic_nnn as "periodic-like" for wrapping logic
-is_periodic_bc(bc::Symbol) = (bc == :periodic || bc == :periodic_nnn)
-
 """
     SingleSite(site::Int)
 
