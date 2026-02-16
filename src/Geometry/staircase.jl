@@ -1,6 +1,9 @@
 # === Staircase Geometry Types ===
 # Geometries with internal state (mutable pointer)
-
+"""
+Checks for periodic boundary conditions
+is_periodic_bc(bc::Symbol) = (bc == :periodic || bc == :periodic_nnn)
+"""
 """
     AbstractStaircase <: AbstractGeometry
 
@@ -77,7 +80,7 @@ function get_sites(geo::AbstractStaircase, state)
     range = geo.range
     
     # Compute second site with wrapping for PBC
-    if state.bc == :periodic
+    if is_periodic_bc(state.bc)
         second = mod1(pos + range, L)
     else
         second = pos + range
@@ -99,7 +102,7 @@ Advance staircase right by one position. Internal use by apply!.
 - StaircaseRight: pos += 1, wraps L → 1 (PBC) or L-1 → 1 (OBC)
 """
 function advance!(geo::StaircaseRight, L::Int, bc::Symbol)
-    if bc == :periodic
+    if is_periodic_bc(state.bc)
         # PBC: position cycles 1 → 2 → ... → L → 1
         geo._position = (geo._position % L) + 1
     else
@@ -116,7 +119,7 @@ Advance staircase left by one position. Internal use by apply!.
 - StaircaseLeft: pos -= 1, wraps 1 → L (PBC) or 1 → L-1 (OBC)
 """
 function advance!(geo::StaircaseLeft, L::Int, bc::Symbol)
-    if bc == :periodic
+    if is_periodic_bc(state.bc)
         # PBC: position cycles L → L-1 → ... → 1 → L
         geo._position = geo._position == 1 ? L : geo._position - 1
     else
