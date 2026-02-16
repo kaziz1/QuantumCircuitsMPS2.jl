@@ -1,9 +1,12 @@
 # === Staircase Geometry Types ===
 # Geometries with internal state (mutable pointer)
 """
-Checks for periodic boundary conditions
-is_periodic_bc(bc::Symbol) = (bc == :periodic || bc == :periodic_nnn)
+    is_periodic_bc(bc::Symbol) -> Bool
+
+Checks whether the boundary condition is periodic.
 """
+is_periodic_bc(bc::Symbol) = (bc == :periodic || bc == :periodic_nnn)
+
 """
     AbstractStaircase <: AbstractGeometry
 
