@@ -12,7 +12,6 @@ For two-qubit gates, the pair is (position, position+1) with PBC wrap.
 """
 mutable struct Pointer <: AbstractGeometry
     _position::Int
-    
     Pointer(start::Int) = new(start)
 end
 
@@ -32,7 +31,7 @@ Handles PBC wrap when pos == L.
 function get_sites(p::Pointer, state)
     pos = p._position
     L = state.L
-    second = (pos == L && state.bc == :periodic) ? 1 : pos + 1
+    second = (pos == L && (state.bc == :periodic || state.bc == :periodic_nnn)) ? 1 : pos + 1
     return [pos, second]
 end
 
@@ -47,13 +46,13 @@ This is the PUBLIC API for pointer movement, unlike advance!() which is internal
 """
 function move!(p::Pointer, direction::Symbol, L::Int, bc::Symbol=:periodic)
     if direction == :left
-        if bc == :periodic
+        if bc == :periodic || bc == :periodic_nnn
             p._position = p._position == 1 ? L : p._position - 1
         else
             p._position = p._position == 1 ? L - 1 : p._position - 1
         end
     elseif direction == :right
-        if bc == :periodic
+        if bc == :periodic || bc == :periodic_nnn
             p._position = (p._position % L) + 1
         else
             max_pos = L - 1
