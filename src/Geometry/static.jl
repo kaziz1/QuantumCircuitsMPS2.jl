@@ -1,6 +1,9 @@
 # === Static Geometry Types ===
 # Geometries where sites are known at construction time
 
+# Treat :periodic and :periodic_nnn as "periodic-like" for wrapping logic
+is_periodic_bc(bc::Symbol) = (bc == :periodic || bc == :periodic_nnn)
+
 """
     SingleSite(site::Int)
 
@@ -25,7 +28,7 @@ end
 
 function get_sites(geo::AdjacentPair, state)
     L = state.L
-    second = (geo.first == L && state.bc == :periodic) ? 1 : geo.first + 1
+    second = (geo.first == L && is_periodic_bc(state.bc)) ? 1 : geo.first + 1
     return [geo.first, second]
 end
 
@@ -41,10 +44,10 @@ end
 
 function get_sites(geo::NextNearestNeighbor, state)
     L = state.L
-    # If periodic and we are at L-1 or L, we wrap.
+    # If periodic-like and we are at L-1 or L, we wrap.
     # L-1 wraps to 1. L wraps to 2.
     # Otherwise, we just add 2.
-    second = (state.bc == :periodic && geo.first >= L - 1) ? (geo.first + 2 - L) : geo.first + 2
+    second = (is_periodic_bc(state.bc) && geo.first >= L - 1) ? (geo.first + 2 - L) : geo.first + 2
     return [geo.first, second]
 end
 
@@ -69,9 +72,10 @@ apply! loops internally over all pairs.
 """
 struct Bricklayer <: AbstractGeometry
     parity::Symbol
-    
+
     function Bricklayer(parity::Symbol)
-        parity in (:odd, :even, :nn, :nnn, :nnn_odd_1, :nnn_odd_2, :nnn_even_1, :nnn_even_2) || throw(ArgumentError("Bricklayer parity must be :odd, :even, :nn, :nnn, :nnn_odd_1, :nnn_odd_2, :nnn_even_1, or :nnn_even_2, got $parity"))
+        parity in (:odd, :even, :nn, :nnn, :nnn_odd_1, :nnn_odd_2, :nnn_even_1, :nnn_even_2) ||
+            throw(ArgumentError("Bricklayer parity must be :odd, :even, :nn, :nnn, :nnn_odd_1, :nnn_odd_2, :nnn_even_1, or :nnn_even_2, got $parity"))
         new(parity)
     end
 end
@@ -85,7 +89,7 @@ function get_pairs(geo::Bricklayer, state)
     L = state.L
     bc = state.bc
     pairs = Tuple{Int,Int}[]
-    
+
     if geo.parity == :odd
         # Odd pairs: (1,2), (3,4), (5,6), ...
         for i in 1:2:L-1
@@ -97,7 +101,7 @@ function get_pairs(geo::Bricklayer, state)
             push!(pairs, (i, i+1))
         end
         # For PBC, also include (L, 1)
-        if bc == :periodic
+        if is_periodic_bc(bc)
             push!(pairs, (L, 1))
         end
     elseif geo.parity == :nn
@@ -109,7 +113,7 @@ function get_pairs(geo::Bricklayer, state)
         for i in 2:2:L-1  # Even pairs: (2,3), (4,5), ...
             push!(pairs, (i, i+1))
         end
-        if bc == :periodic
+        if is_periodic_bc(bc)
             push!(pairs, (L, 1))  # Wrap: (12,1) for L=12
         end
     elseif geo.parity == :nnn
@@ -123,7 +127,7 @@ function get_pairs(geo::Bricklayer, state)
         for i in 3:4:L-2
             push!(pairs, (i, i+2))
         end
-        if bc == :periodic && L >= 4
+        if is_periodic_bc(bc) && L >= 4
             push!(pairs, (L-1, 1))  # (11,1) for L=12
         end
         # Sublayer 3: (2,4), (6,8), (10,12)
@@ -134,7 +138,7 @@ function get_pairs(geo::Bricklayer, state)
         for i in 4:4:L-2
             push!(pairs, (i, i+2))
         end
-        if bc == :periodic && L >= 4
+        if is_periodic_bc(bc) && L >= 4
             push!(pairs, (L, 2))  # (12,2) for L=12
         end
     elseif geo.parity == :nnn_odd_1
@@ -147,7 +151,7 @@ function get_pairs(geo::Bricklayer, state)
         for i in 3:4:L-2
             push!(pairs, (i, i+2))
         end
-        if bc == :periodic && L >= 4
+        if is_periodic_bc(bc) && L >= 4
             push!(pairs, (L-1, 1))  # Wrap: (11,1) for L=12
         end
     elseif geo.parity == :nnn_even_1
@@ -160,11 +164,11 @@ function get_pairs(geo::Bricklayer, state)
         for i in 4:4:L-2
             push!(pairs, (i, i+2))
         end
-        if bc == :periodic && L >= 4
+        if is_periodic_bc(bc) && L >= 4
             push!(pairs, (L, 2))  # Wrap: (12,2) for L=12
         end
     end
-    
+
     return pairs
 end
 
