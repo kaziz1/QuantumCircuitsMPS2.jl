@@ -1,4 +1,8 @@
 # === Compound Geometry Helpers ===
+"""
+Checks for either periodic boundary condition
+"""
+is_periodic_bc(bc::Symbol) = (bc == :periodic || bc == :periodic_nnn)
 
 """
     is_compound_geometry(geo::AbstractGeometry) -> Bool
@@ -64,7 +68,7 @@ function get_compound_elements(geo::Bricklayer, L::Int, bc::Symbol)
         for i in 2:2:L-1  # Even pairs: (2,3), (4,5), ...
             push!(pairs, (i, i+1))
         end
-        if bc == :periodic
+        if is_periodic_bc(bc)
             push!(pairs, (L, 1))  # Wrap: (12,1) for L=12
         end
     elseif geo.parity == :nnn
@@ -78,7 +82,7 @@ function get_compound_elements(geo::Bricklayer, L::Int, bc::Symbol)
         for i in 3:4:L-2
             push!(pairs, (i, i+2))
         end
-        if bc == :periodic && L >= 4
+        if if is_periodic_bc(bc) && L >= 4
             push!(pairs, (L-1, 1))  # (11,1) for L=12
         end
         # Sublayer 3: (2,4), (6,8), (10,12)
@@ -89,7 +93,7 @@ function get_compound_elements(geo::Bricklayer, L::Int, bc::Symbol)
         for i in 4:4:L-2
             push!(pairs, (i, i+2))
         end
-        if bc == :periodic && L >= 4
+        if if is_periodic_bc(bc) && L >= 4
             push!(pairs, (L, 2))  # (12,2) for L=12
         end
     elseif geo.parity == :nnn_odd_1
@@ -102,7 +106,7 @@ function get_compound_elements(geo::Bricklayer, L::Int, bc::Symbol)
         for i in 3:4:L-2
             push!(pairs, (i, i+2))
         end
-        if bc == :periodic && L >= 4
+        if if is_periodic_bc(bc) && L >= 4
             push!(pairs, (L-1, 1))  # Wrap: (11,1) for L=12
         end
     elseif geo.parity == :nnn_even_1
@@ -115,7 +119,7 @@ function get_compound_elements(geo::Bricklayer, L::Int, bc::Symbol)
         for i in 4:4:L-2
             push!(pairs, (i, i+2))
         end
-        if bc == :periodic && L >= 4
+        if if is_periodic_bc(bc) && L >= 4
             push!(pairs, (L, 2))  # Wrap: (12,2) for L=12
         end
     end
