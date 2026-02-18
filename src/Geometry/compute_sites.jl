@@ -2,9 +2,6 @@
 # Pure functional versions of geometry site computation without mutation.
 # These enable symbolic circuit expansion where step replaces mutable _position.
 
-# Minimal change: allow :periodic_nnn everywhere we previously treated :periodic as periodic.
-is_periodic_bc(bc::Symbol) = (bc == :periodic || bc == :periodic_nnn)
-
 """
     compute_site_staircase_right(start::Int, step::Int, L::Int, bc::Symbol) -> Int
 
