@@ -82,4 +82,7 @@ export apply_op_internal!, apply_post!        # Apply internals
 export born_probability                       # Observable internals
 export compute_basis_mapping, physical_to_ram, ram_to_physical # Basis internals
 
+# === Geometry Helpers === #
+export wrap_site, sanitize_pair, build_nn_pairs, build_manual_pairs
+
 end # module
