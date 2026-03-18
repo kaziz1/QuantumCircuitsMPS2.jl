@@ -1,3 +1,27 @@
+# === Custom S=1 Zero Projector ===
+
+"""
+    ZeroProjector(tau::Float64)
+
+Projector onto the S=1 zero state, evolved in imaginary time by tau.
+Computes exp(|0⟩⟨0| * tau).
+"""
+struct ZeroProjector <: AbstractGate
+    tau::Float64
+end
+support(::ZeroProjector) = 1
+
+"""
+    build_operator(gate::ZeroProjector, site::Index, local_dim::Int) -> ITensor
+
+Build the Zero Projector operator tensor.
+"""
+function build_operator(gate::ZeroProjector, site::Index, local_dim::Int; kwargs...)
+    projzero = [0.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 0.0]
+    mat = exp(projzero * gate.tau)
+    return itensor(mat, site', site)
+end
+
 # === Single-Qubit Gates ===
 
 """Pauli X gate (NOT gate, bit flip)."""
