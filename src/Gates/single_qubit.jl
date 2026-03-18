@@ -2,7 +2,7 @@
 
 """
     ZeroProjector(tau::Float64)
-
+ 
 Projector onto the S=1 zero state, evolved in imaginary time by tau.
 Computes exp(|0⟩⟨0| * tau).
 """
