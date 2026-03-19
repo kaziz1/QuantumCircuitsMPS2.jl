@@ -1,5 +1,16 @@
 # === Custom S=1 Zero Projector ===
 
+struct FZeroGate <: QuantumCircuitsMPS2.AbstractGate
+    tau::Float64
+end
+QuantumCircuitsMPS2.support(::FZeroGate) = 1
+function QuantumCircuitsMPS2.build_operator(gate::FZeroGate, site::Index, local_dim::Int; kwargs...)
+    projzero = [0.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 0.0]
+    mat = exp(projzero * gate.tau)
+    return itensor(mat, site', site)
+end 
+
+
 """
     ZeroProjector(tau::Float64)
  
