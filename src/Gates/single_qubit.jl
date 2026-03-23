@@ -114,3 +114,12 @@ function build_operator(gate::Projection, site::Index, local_dim::Int; kwargs...
         return op("Proj1", site)  # |1⟩⟨1|
     end
 end
+
+"""
+    build_operator(gate::TGate, site::Index, local_dim::Int) -> ITensor
+
+Build the T gate operator tensor using ITensors' built-in "T" operator.
+"""
+function build_operator(gate::TGate, site::Index, local_dim::Int; kwargs...)
+    return op("T", site)
+end
