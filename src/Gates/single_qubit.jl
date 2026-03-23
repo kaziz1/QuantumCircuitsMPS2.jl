@@ -48,6 +48,15 @@ struct PauliZ <: AbstractGate end
 support(::PauliZ) = 1
 
 """
+    TGate
+
+Single-qubit T gate (π/8 phase gate).
+Applies a phase of e^(iπ/4) to the |1⟩ computational basis state.
+"""
+struct TGate <: AbstractGate end
+support(::TGate) = 1
+
+"""
     Projection(outcome::Int)
 
 Projector onto computational basis state |outcome⟩.
