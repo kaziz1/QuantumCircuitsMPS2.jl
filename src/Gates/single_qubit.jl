@@ -56,6 +56,35 @@ Applies a phase of e^(iπ/4) to the |1⟩ computational basis state.
 struct TGate <: AbstractGate end
 support(::TGate) = 1
 
+# === Single-Qubit Rotation Gates ===
+
+"""
+    Rx(theta::Float64)
+Rotation around the X-axis by angle theta.
+"""
+struct Rx <: AbstractGate
+    theta::Float64
+end
+support(::Rx) = 1
+
+"""
+    Ry(theta::Float64)
+Rotation around the Y-axis by angle theta.
+"""
+struct Ry <: AbstractGate
+    theta::Float64
+end
+support(::Ry) = 1
+
+"""
+    Rz(theta::Float64)
+Rotation around the Z-axis by angle theta.
+"""
+struct Rz <: AbstractGate
+    theta::Float64
+end
+support(::Rz) = 1
+
 """
     Projection(outcome::Int)
 
@@ -122,4 +151,35 @@ Build the T gate operator tensor using ITensors' built-in "T" operator.
 """
 function build_operator(gate::TGate, site::Index, local_dim::Int; kwargs...)
     return op("T", site)
+end
+
+# === build_operator implementations ===
+
+function build_operator(gate::Rx, site::Index, local_dim::Int; kwargs...)
+    c = cos(gate.theta / 2.0)
+    s = sin(gate.theta / 2.0)
+    
+    mat = [c + 0.0im      0.0 - s*im;
+           0.0 - s*im     c + 0.0im]
+           
+    return itensor(mat, site', site)
+end
+
+function build_operator(gate::Ry, site::Index, local_dim::Int; kwargs...)
+    c = cos(gate.theta / 2.0)
+    s = sin(gate.theta / 2.0)
+    
+    mat = [c + 0.0im     -s + 0.0im;
+           s + 0.0im      c + 0.0im]
+           
+    return itensor(mat, site', site)
+end
+
+function build_operator(gate::Rz, site::Index, local_dim::Int; kwargs...)
+    phase = exp(-im * gate.theta / 2.0)
+    
+    mat = [phase          0.0 + 0.0im;
+           0.0 + 0.0im    conj(phase)]
+           
+    return itensor(mat, site', site)
 end
