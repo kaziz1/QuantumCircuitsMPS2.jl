@@ -1,0 +1,220 @@
+using ITensors, ITensorMPS, Random, Dates, DelimitedFiles, LinearAlgebra, QuantumCircuitsMPS2
+
+# ==============================================================================
+# 0. GENERATE 5760 DUAL CLIFFORD GATES (Computed Once for Speed)
+# ==============================================================================
+
+function generate_dual_clifford_set()
+    I1 = [1.0+0.0im 0.0+0.0im; 0.0+0.0im 1.0+0.0im]
+    sx = [0.0+0.0im 1.0+0.0im; 1.0+0.0im 0.0+0.0im]
+    sy = [0.0+0.0im 0.0-1.0im; 0.0+1.0im 0.0+0.0im]
+    sz = [1.0+0.0im 0.0+0.0im; 0.0+0.0im -1.0+0.0im]
+
+    rx_2  = (sqrt(2)/2)*(I1 - 1im*sx)
+    rx_m2 = (sqrt(2)/2)*(I1 + 1im*sx)
+    ry_2  = (sqrt(2)/2)*(I1 - 1im*sy)
+    ry_m2 = (sqrt(2)/2)*(I1 + 1im*sy)
+
+    r_1  = rx_2  * ry_2
+    r_2  = rx_2  * ry_m2
+    r_3  = rx_m2 * ry_2
+    r_4  = rx_m2 * ry_m2
+    r_5  = ry_2  * rx_2
+    r_6  = ry_2  * rx_m2
+    r_7  = ry_m2 * rx_2
+    r_8  = ry_m2 * rx_m2
+    r_9, r_10, r_11, r_12 = rx_2, rx_m2, ry_2, ry_m2
+    r_13 = rx_m2 * ry_2  * rx_2
+    r_14 = rx_m2 * ry_m2 * rx_2
+
+    h_1  = sx * ry_2
+    h_2  = sx * ry_m2
+    h_3  = sy * rx_2
+    h_4  = sy * rx_m2
+    h_5  = rx_2  * ry_2 * rx_2
+    h_6  = rx_m2 * ry_2 * rx_m2
+
+    c_gates = [I1,sx,sy,sz, r_1,r_2,r_3,r_4,r_5,r_6,r_7,r_8,
+               r_9,r_10,r_11,r_12,r_13,r_14, h_1,h_2,h_3,h_4,h_5,h_6]
+
+    s_1 = [I1, ry_2*rx_2, rx_m2*ry_m2] 
+
+    CNOT  = [1 0 0 0; 0 1 0 0; 0 0 0 1; 0 0 1 0]
+    SWAP  = [1 0 0 0; 0 0 1 0; 0 1 0 0; 0 0 0 1]
+    iSWAP = [1.0+0.0im 0 0 0; 0 0 1im 0; 0 1im 0 0; 0 0 0 1.0+0.0im]
+
+    dual_cliff = Matrix{ComplexF64}[]
+
+    for g1 in c_gates, g2 in c_gates, s1 in s_1, s2 in s_1
+        push!(dual_cliff, kron(g1, g2) * iSWAP * kron(s1, s2))
+    end
+    for g1 in c_gates, g2 in c_gates
+        push!(dual_cliff, kron(g1, g2) * SWAP)
+    end
+    return dual_cliff
+end
+
+const DUAL_CLIFFORD_GATES = generate_dual_clifford_set()
+
+
+# ==============================================================================
+# 1. LIBRARY PATCHES & CUSTOM GATES
+# ==============================================================================
+
+import QuantumCircuitsMPS2: _build_gate_operator, born_probability, get_rng, Projection, AbstractGate, support
+
+# --- A. The Random Dual Clifford Gate ---
+struct RandomDualClifford <: AbstractGate end
+support(::RandomDualClifford) = 2
+
+function _build_gate_operator(state::SimulationState, gate::RandomDualClifford, phy_sites::Vector{Int}, ram_sites::Vector{Int})
+    site_indices = [state.sites[rs] for rs in ram_sites]
+    return QuantumCircuitsMPS2.build_operator(gate, site_indices, state.local_dim; rng=state.rng_registry)
+end
+
+function QuantumCircuitsMPS2.build_operator(gate::RandomDualClifford, sites::Vector{<:Index}, local_dim::Int; rng)
+    haar_rng = get_rng(rng, :haar)
+    indexin = rand(haar_rng, 1:5760)
+    mat = DUAL_CLIFFORD_GATES[indexin]
+    
+    U_4 = reshape(mat, 2, 2, 2, 2)
+    return itensor(U_4, sites[2]', sites[1]', sites[2], sites[1])
+end
+
+# --- B. The Mimic Single-Qubit Euler Gate ---
+struct RandomEuler1Q <: AbstractGate end
+support(::RandomEuler1Q) = 1
+
+function _build_gate_operator(state::SimulationState, gate::RandomEuler1Q, phy_sites::Vector{Int}, ram_sites::Vector{Int})
+    site_idx = state.sites[ram_sites[1]]
+    return QuantumCircuitsMPS2.build_operator(gate, site_idx, state.local_dim; rng=state.rng_registry)
+end
+
+function QuantumCircuitsMPS2.build_operator(gate::RandomEuler1Q, site::Index, local_dim::Int; rng)
+    haar_rng = get_rng(rng, :haar)
+    alpha = rand(haar_rng) * 2 * π
+    gamma = rand(haar_rng) * 2 * π
+    u = rand(haar_rng)
+    beta = acos(1.0 - 2.0 * u)
+    
+    Rz_alpha = [exp(-im * alpha / 2.0) 0.0+0.0im; 0.0+0.0im exp(im * alpha / 2.0)]
+    Ry_beta  = [cos(beta / 2.0) -sin(beta / 2.0); sin(beta / 2.0) cos(beta / 2.0)]
+    Rz_gamma = [exp(-im * gamma / 2.0) 0.0+0.0im; 0.0+0.0im exp(im * gamma / 2.0)]
+    
+    U = Rz_alpha * Ry_beta * Rz_gamma
+    return itensor(U, site', site)
+end
+
+# ==============================================================================
+# 2. MAIN MIPT SIMULATION FUNCTION
+# ==============================================================================
+
+function run_mipt_trajectory_mimic_haar(L::Int, p_rate::Float64, eta::Float64, beta_pow::Float64, cutoffin::Float64, timesteps::Int, iterations::Int, periodic::Bool, master_seed::Int, filename::String)
+    master_rng = MersenneTwister(master_seed)
+    bc::Symbol = periodic ? :periodic : :open
+    Ldiv2 = div(L, 2)
+    p_T = eta / (L^beta_pow)
+
+    FET      = fill(0.0, timesteps, iterations)
+    S_mat    = fill(0.0, timesteps, iterations)
+    bond_mat = fill(0.0, timesteps, iterations)
+
+    println("Starting Code B (Dual Clifford + Mimic Impurities)...")
+    println("L=$L, p_meas=$p_rate, p_T=$(round(p_T, digits=4))")
+    
+    for it in 1:iterations
+        seed_ctrl_it = Int(rand(master_rng, UInt32))
+        rng_reg = RNGRegistry(ctrl=seed_ctrl_it, proj=1, haar=1, born=1)
+        sim = SimulationState(L=L, bc=bc, site_type="Qubit", cutoff=cutoffin, maxdim=512, rng=rng_reg)
+        sim.mps = randomMPS(sim.sites; linkdims=4)
+        normalize!(sim.mps)
+
+        ctrl_rng = get_rng(sim.rng_registry, :ctrl)
+        current_cumulative_log_p = 0.0
+
+        println("\n> Trajectory $it/$iterations (Seed: $seed_ctrl_it)")
+
+        PairInfo = NamedTuple{(:sites, :is_mimic), Tuple{Vector{Int}, Bool}}
+        PlanType = NamedTuple{(:even_pairs, :meas_even, :odd_pairs, :meas_odd), 
+                              Tuple{Vector{PairInfo}, Vector{Int}, Vector{PairInfo}, Vector{Int}}}
+        compiled_by_t = Vector{PlanType}(undef, timesteps)
+
+        for t in 1:timesteps
+            ep = PairInfo[]
+            for i in 2:2:L-1
+                push!(ep, (sites=[i, i+1], is_mimic=(rand(ctrl_rng) < p_T)))
+            end
+            if periodic; push!(ep, (sites=[L, 1], is_mimic=(rand(ctrl_rng) < p_T))); end
+
+            m_even = Int[]
+            for i in 1:L
+                if rand(ctrl_rng) < p_rate; push!(m_even, i); end
+            end
+
+            op = PairInfo[]
+            for i in 1:2:L-1
+                push!(op, (sites=[i, i+1], is_mimic=(rand(ctrl_rng) < p_T)))
+            end
+
+            m_odd = Int[]
+            for i in 1:L
+                if rand(ctrl_rng) < p_rate; push!(m_odd, i); end
+            end
+
+            compiled_by_t[t] = (even_pairs=ep, meas_even=m_even, odd_pairs=op, meas_odd=m_odd)
+        end
+
+        for t in 1:timesteps
+            plan = compiled_by_t[t]
+
+            # --- EVEN LAYER ---
+            for pair in plan.even_pairs
+                if pair.is_mimic
+                    apply!(sim, RandomEuler1Q(), [pair.sites[1]])
+                    apply!(sim, RandomEuler1Q(), [pair.sites[2]])
+                end
+                apply!(sim, RandomDualClifford(), pair.sites)
+            end
+            
+            for site in plan.meas_even
+                p_0 = born_probability(sim, site, 0)
+                born_rng = get_rng(sim.rng_registry, :born)
+                outcome, p_m = rand(born_rng) < p_0 ? (0, p_0) : (1, 1.0 - p_0)
+                current_cumulative_log_p += log(p_m)
+                apply!(sim, Projection(outcome), [site])
+            end
+
+            # --- ODD LAYER ---
+            for pair in plan.odd_pairs
+                if pair.is_mimic
+                    apply!(sim, RandomEuler1Q(), [pair.sites[1]])
+                    apply!(sim, RandomEuler1Q(), [pair.sites[2]])
+                end
+                apply!(sim, RandomDualClifford(), pair.sites)
+            end
+            
+            for site in plan.meas_odd
+                p_0 = born_probability(sim, site, 0)
+                born_rng = get_rng(sim.rng_registry, :born)
+                outcome, p_m = rand(born_rng) < p_0 ? (0, p_0) : (1, 1.0 - p_0)
+                current_cumulative_log_p += log(p_m)
+                apply!(sim, Projection(outcome), [site])
+            end
+
+            FET[t, it]      = current_cumulative_log_p
+            S_mat[t, it]    = EntanglementEntropy(cut=Ldiv2)(sim)
+            bond_mat[t, it] = maximum(linkdims(sim.mps))
+
+            if t % 10 == 0 || t == timesteps
+                println("  t=$(lpad(t, 2)) | FET=$(round(FET[t, it], digits=2)) | S=$(round(S_mat[t, it], digits=4))")
+            end
+        end
+    end
+
+    header = "_p=$(p_rate)_eta=$(eta)_beta=$(beta_pow)_L=$(L)_n=$(timesteps)"
+    writedlm(filename * header * "_FET.csv", FET, ",")
+    writedlm(filename * header * "_S_Entropy.csv", S_mat, ",")
+    writedlm(filename * header * "_BondDim.csv", bond_mat, ",")
+    println("\nSimulation complete. Saved: $header")
+    return (FET=FET, S=S_mat, bond=bond_mat)
+end
